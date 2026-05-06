@@ -1,0 +1,120 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-bg-base text-ink-primary font-sans tracking-soft antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Soft scrollbar that doesn't break the dark calm */
+  *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  /* Focus ring — soft, never harsh */
+  :focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(139, 127, 232, 0.25);
+    border-radius: 12px;
+  }
+}
+
+@layer components {
+  /* Glass surface — DESIGN.md §5.2 */
+  .glass {
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(24px) saturate(140%);
+    -webkit-backdrop-filter: blur(24px) saturate(140%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    position: relative;
+  }
+
+  .glass::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 1px;
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.22),
+      transparent
+    );
+    border-radius: inherit;
+    pointer-events: none;
+  }
+
+  .glass-strong {
+    background: rgba(255, 255, 255, 0.10);
+    backdrop-filter: blur(32px) saturate(150%);
+    -webkit-backdrop-filter: blur(32px) saturate(150%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+}
+
+@layer utilities {
+  /* Atmospheric background — distant nebula light, used on root */
+  .sky-bg {
+    background-color: #0E1033;
+    background-image:
+      radial-gradient(ellipse 90% 55% at 12% 22%, rgba(139, 95, 232, 0.30), transparent 65%),
+      radial-gradient(ellipse 80% 50% at 88% 72%, rgba(93, 168, 255, 0.22), transparent 65%),
+      radial-gradient(ellipse 70% 45% at 50% 48%, rgba(164, 142, 255, 0.16), transparent 70%);
+  }
+
+  /* Stars — extremely subtle, adds depth without noise */
+  .stars::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 12% 22%, rgba(255, 255, 255, 0.55), transparent),
+      radial-gradient(1px 1px at 78% 14%, rgba(255, 255, 255, 0.4), transparent),
+      radial-gradient(1px 1px at 35% 70%, rgba(255, 255, 255, 0.5), transparent),
+      radial-gradient(1px 1px at 88% 52%, rgba(255, 255, 255, 0.35), transparent),
+      radial-gradient(1px 1px at 60% 88%, rgba(255, 255, 255, 0.45), transparent),
+      radial-gradient(1px 1px at 22% 90%, rgba(255, 255, 255, 0.3), transparent);
+    pointer-events: none;
+    opacity: 0.7;
+  }
+
+  /* Soft caret animation for typewriter */
+  .caret::after {
+    content: '';
+    display: inline-block;
+    width: 2px;
+    height: 1em;
+    margin-left: 2px;
+    vertical-align: -0.15em;
+    background: currentColor;
+    border-radius: 1px;
+    animation: caret-blink 1s steps(2) infinite;
+  }
+
+  @keyframes caret-blink {
+    50% {
+      opacity: 0;
+    }
+  }
+}
