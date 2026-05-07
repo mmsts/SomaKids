@@ -130,7 +130,7 @@ export function BodyMapPage({ onComplete }: Props) {
 function Step1({ onSelect }: { onSelect: (p: BodyPart) => void }) {
   return (
     <section className="flex flex-col items-center text-center">
-      <Companion mood="idle" size={140} />
+      <Companion mood="listening" size={140} />
 
       <h1 className="mt-10 text-[30px] lg:text-[40px] font-bold tracking-soft leading-snug">
         今天,哪里不太舒服?
@@ -190,7 +190,7 @@ function Step2({ part, value, onChange, onSubmit }: Step2Props) {
     <section className="lg:grid lg:grid-cols-[2fr_3fr] lg:gap-16 lg:items-center">
       {/* Hero column — ~40% */}
       <div className="flex flex-col items-center text-center lg:items-start lg:text-left">
-        <Companion mood="idle" size={128} />
+        <Companion mood="listening" size={128} />
         <div className="mt-8">
           <div className="text-[16px] lg:text-[18px] text-ink-tertiary">你点了</div>
           <h2 className="mt-2 text-[32px] lg:text-[44px] font-bold tracking-soft leading-tight">

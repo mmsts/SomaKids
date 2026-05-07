@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useState } from 'react';
 import { HomeView } from './pages/HomeView';
 import { BodyCheckFlow } from './pages/BodyCheckFlow';
+import { ResearchPage } from './pages/ResearchPage';
 import type { ChildProfile } from './types';
 
 export default function App() {
@@ -24,6 +25,7 @@ export default function App() {
         }
       />
       <Route path="/body-check" element={<BodyCheckFlow />} />
+      <Route path="/research" element={<ResearchPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

@@ -8,10 +8,29 @@ export interface Suggestion {
   emoji: string;
 }
 
+export interface Reasoning {
+  tags: string[];
+  rationale: string;
+}
+
+export interface BodySignal {
+  symptom: string;
+  confidence: number;
+}
+
+export interface EmotionSignal {
+  emotion: string;
+  confidence: number;
+}
+
 export interface AnalysisResult {
   interpretation: string;
   suggestions: Suggestion[];
   riskLevel: RiskLevel;
+  reasoning: Reasoning;
+  bodySignals: BodySignal[];
+  emotionSignals: EmotionSignal[];
+  emotionReasoning: string | null;
 }
 
 export function analyzeInput(bodyPart: BodyPart, text: string): AnalysisResult;

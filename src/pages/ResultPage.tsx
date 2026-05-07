@@ -113,7 +113,13 @@ export function ResultPage({ data, onRestart, onHome }: Props) {
         {/* hero — keep narrow and centered */}
         <section className="flex flex-col items-center text-center pt-2 mx-auto max-w-md">
           <Companion
-            mood={stage === 'thinking' ? 'thinking' : 'soothe'}
+            mood={
+              stage === 'thinking'
+                ? 'thinking'
+                : result.riskLevel === 'high'
+                  ? 'worried'
+                  : 'relieved'
+            }
             size={104}
           />
           <h1 className="mt-7 text-[26px] font-bold tracking-soft animate-fade-up">
@@ -188,6 +194,97 @@ export function ResultPage({ data, onRestart, onHome }: Props) {
             </GlassCard>
           </section>
         </div>
+
+        {/* How SomaKids understood */}
+        {showSuggestions && (
+          <section className="mt-9 animate-fade-up">
+            <SectionLabel>SomaKids 是怎么理解的？</SectionLabel>
+            <GlassCard
+              radius="xl"
+              size="md"
+              glow="soft"
+              className="mt-3 relative overflow-hidden"
+            >
+              <div
+                className="pointer-events-none absolute -top-12 -left-12 w-40 h-40 rounded-full blur-3xl opacity-30"
+                style={{ background: risk.glow }}
+              />
+              <div className="relative">
+                {/* Tags */}
+                <div className="flex flex-wrap gap-2">
+                  {result.reasoning.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="inline-flex items-center px-2.5 h-6 rounded-full bg-white/[0.06] border border-white/[0.08] text-[12px] text-ink-secondary"
+                    >
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+
+                {/* Rationale */}
+                <div
+                  className="mt-5 pl-4 border-l-2"
+                  style={{ borderColor: `${risk.dot}40` }}
+                >
+                  <p className="text-[14px] text-ink-secondary leading-[1.9]">
+                    {result.reasoning.rationale}
+                  </p>
+                </div>
+              </div>
+            </GlassCard>
+          </section>
+        )}
+
+        {/* Emotion signals */}
+        {showSuggestions && result.emotionSignals.length > 0 && (
+          <section className="mt-9 animate-fade-up">
+            <SectionLabel>也可能和情绪有关</SectionLabel>
+            <GlassCard
+              radius="xl"
+              size="md"
+              glow="soft"
+              className="mt-3 relative overflow-hidden"
+            >
+              <div
+                className="pointer-events-none absolute -top-12 -right-12 w-40 h-40 rounded-full blur-3xl opacity-25"
+                style={{ background: 'rgba(255, 200, 180, 0.35)' }}
+              />
+              <div className="relative">
+                {/* Emotion chips */}
+                <div className="flex flex-wrap gap-2">
+                  {result.emotionSignals.map((es) => (
+                    <span
+                      key={es.emotion}
+                      className="inline-flex items-center gap-1.5 px-3 h-7 rounded-full bg-white/[0.05] border border-white/[0.08] text-[13px] text-ink-secondary"
+                    >
+                      <span
+                        className="w-1.5 h-1.5 rounded-full"
+                        style={{ background: 'rgba(255, 184, 160, 0.8)' }}
+                      />
+                      {es.emotion}
+                      <span className="text-[11px] text-ink-tertiary opacity-60">
+                        {Math.round(es.confidence * 100)}%
+                      </span>
+                    </span>
+                  ))}
+                </div>
+
+                {/* Emotion reasoning */}
+                {result.emotionReasoning && (
+                  <div
+                    className="mt-5 pl-4 border-l-2"
+                    style={{ borderColor: 'rgba(255, 184, 160, 0.25)' }}
+                  >
+                    <p className="text-[14px] text-ink-secondary leading-[1.9]">
+                      {result.emotionReasoning}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </GlassCard>
+          </section>
+        )}
 
         {/* Suggestions — two-column grid on landscape */}
         {showSuggestions && (

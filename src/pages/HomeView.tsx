@@ -576,6 +576,20 @@ export function HomeView({ childProfile, onUpdateProfile }: Props) {
           </main>
         </div>
       </div>
+
+      {/* Footer */}
+      <footer className="mt-16 pb-8 text-center">
+        <div className="inline-flex items-center gap-1 px-4 h-8 rounded-full bg-white/[0.03] border border-white/[0.06] text-[12px] text-ink-tertiary hover:text-ink-secondary hover:border-white/[0.1] transition-colors cursor-pointer"
+          onClick={() => navigate('/research')}
+        >
+          <span>🔬</span>
+          <span>了解 SomaKids 的研究洞察</span>
+          <span>→</span>
+        </div>
+        <p className="mt-4 text-[11px] text-ink-disabled">
+          SomaKids · 让孩子的身体感受被温柔理解
+        </p>
+      </footer>
     </main>
   );
 }

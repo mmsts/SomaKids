@@ -365,6 +365,45 @@ const RULES = {
   ],
 };
 
+// ───── 情绪信号词典 ─────────────────────────────────────────────
+
+const UNIVERSAL_EMOTION_MAP = {
+  '不想说话': { emotion: '委屈', weight: 0.9 },
+  '不想动':   { emotion: '疲惫', weight: 0.7 },
+  '烦':       { emotion: '烦躁', weight: 0.8 },
+  '烦死了':   { emotion: '烦躁', weight: 0.9 },
+  '好烦':     { emotion: '烦躁', weight: 0.8 },
+  '害怕':     { emotion: '害怕', weight: 0.9 },
+  '怕':       { emotion: '害怕', weight: 0.7 },
+  '担心':     { emotion: '担心', weight: 0.8 },
+  '睡不着':   { emotion: '焦虑', weight: 0.7 },
+  '不想吃':   { emotion: '低落', weight: 0.6 },
+  '想哭':     { emotion: '委屈', weight: 0.85 },
+  '怪怪的':   { emotion: '不安', weight: 0.8 },
+  '不舒服':   { emotion: '不安', weight: 0.5 },
+  '喘不过气': { emotion: '紧张', weight: 0.9 },
+  '堵住':     { emotion: '压抑', weight: 0.85 },
+  '压着':     { emotion: '压力', weight: 0.85 },
+  '爆炸':     { emotion: '焦虑', weight: 0.8 },
+};
+
+const EMOTION_SIGNALS = {
+  head: [
+    { emotion: '紧张', keywords: ['晕', '转', '懵', '沉沉的', '想不清'], weight: 0.6 },
+    { emotion: '疲劳', keywords: ['累', '困', '沉', '重', '没精神'], weight: 0.5 },
+  ],
+  chest: [
+    { emotion: '紧张', keywords: ['闷', '紧', '压', '堵', '憋', '喘不过气'], weight: 0.8 },
+    { emotion: '委屈', keywords: ['酸', '难过', '哭', '委屈', '想哭'], weight: 0.7 },
+    { emotion: '害怕', keywords: ['跳', '怦', '快', '急', '慌', '怕'], weight: 0.6 },
+  ],
+  stomach: [
+    { emotion: '紧张', keywords: ['紧张', '蝴蝶', '飞', '怕', '担心', '怪怪的'], weight: 0.8 },
+    { emotion: '焦虑', keywords: ['胀', '撑', '满', '鼓', '硬', '爆炸'], weight: 0.6 },
+    { emotion: '不安', keywords: ['想吐', '恶心', '反胃', '翻', '涌'], weight: 0.5 },
+  ],
+};
+
 const FALLBACK_SUGGESTIONS = [
   {
     level: 1,
@@ -412,12 +451,22 @@ export function analyzeInput(bodyPart, text) {
 
   // 2. 完全没匹配 → 走兜底文案,风险最低
   if (!top || top.score === 0) {
+    const emotions = detectEmotions(bodyPart, cleaned);
     return {
       interpretation: cleaned
         ? `从孩子描述的"${cleaned}"来看,目前没有传递出特别明确的医学信号,可能只是${partLabel}短暂的轻微感受,建议先观察其精神与活动状态。`
         : `孩子目前没有给出更具体的描述,${partLabel}可能只是短暂的轻微不适,建议先观察精神状态与变化趋势。`,
       suggestions: FALLBACK_SUGGESTIONS,
       riskLevel: 'low',
+      reasoning: {
+        tags: cleaned ? [`${partLabel}区域`, '描述不太明确'] : [`${partLabel}区域`, '需要更多信息'],
+        rationale: cleaned
+          ? `孩子说了「${cleaned}」，但描述比较特别，SomaKids 暂时没有找到特别匹配的信号。建议先观察孩子的精神状态和活动情况。`
+          : `孩子选择了「${partLabel}」区域，但还没有给出具体的描述。SomaKids 会陪家长一起，慢慢引导孩子说出更多感受。`,
+      },
+      bodySignals: [],
+      emotionSignals: emotions,
+      emotionReasoning: buildEmotionReasoning(emotions, cleaned, partLabel),
     };
   }
 
@@ -432,10 +481,16 @@ export function analyzeInput(bodyPart, text) {
     riskLevel = 'medium';
   }
 
+  const emotions = detectEmotions(bodyPart, cleaned);
+
   return {
     interpretation: buildInterpretation(top.rule, top.hits, partLabel),
     suggestions: top.rule.suggestions,
     riskLevel,
+    reasoning: buildReasoning(top.rule, top.hits, partLabel, cleaned),
+    bodySignals: buildBodySignals(scored),
+    emotionSignals: emotions,
+    emotionReasoning: buildEmotionReasoning(emotions, cleaned, partLabel),
   };
 }
 
@@ -447,4 +502,97 @@ function buildInterpretation(rule, hits, partLabel) {
     return `从孩子描述的"${word}"来看,${partLabel}的${rule.physiology}可能正在经历${rule.sign},这通常与${rule.causes}有关。`;
   }
   return `孩子的${partLabel}可能正在经历${rule.sign},通常与${rule.causes}有关,建议继续观察。`;
+}
+
+function buildReasoning(rule, hits, partLabel, expression) {
+  const tags = [];
+
+  for (const h of hits) {
+    tags.push(h);
+  }
+  tags.push(rule.tag);
+  tags.push(`${partLabel}不舒服`);
+
+  let rationale = '';
+  const expr = (expression || '').trim();
+
+  if (hits.length > 0) {
+    const hitWords =
+      hits.length === 1
+        ? `「${hits[0]}」`
+        : `「${hits.join('」和「')}」`;
+    rationale = `因为孩子提到了${hitWords}这样的描述，并且选择了「${partLabel}」区域，SomaKids 会优先考虑${rule.tag}的感觉。`;
+  } else if (expr) {
+    rationale = `孩子选择了「${partLabel}」区域，说「${expr}」。虽然描述比较特别，SomaKids 还是会认真听每一个字，帮家长一起理解孩子身体想说什么。`;
+  } else {
+    rationale = `孩子选择了「${partLabel}」区域，但没有说太多。SomaKids 会陪家长一起，慢慢帮孩子找到合适的词来形容身体的感觉。`;
+  }
+
+  return {
+    tags: [...new Set(tags)].slice(0, 5),
+    rationale,
+  };
+}
+
+// ───── 双通道分析 ─────────────────────────────────────────────
+
+function detectEmotions(bodyPart, text) {
+  const cleaned = (text || '').trim();
+  const scores = {};
+
+  // 通用情绪词（不限部位）
+  for (const [kw, info] of Object.entries(UNIVERSAL_EMOTION_MAP)) {
+    if (cleaned.includes(kw)) {
+      scores[info.emotion] = (scores[info.emotion] || 0) + info.weight;
+    }
+  }
+
+  // 部位相关情绪词
+  const partEmotions = EMOTION_SIGNALS[bodyPart] || [];
+  for (const es of partEmotions) {
+    const hits = es.keywords.filter((k) => cleaned.includes(k));
+    if (hits.length > 0) {
+      scores[es.emotion] = (scores[es.emotion] || 0) + hits.length * es.weight;
+    }
+  }
+
+  // 归一化 confidence（0.45 ~ 0.95）
+  return Object.entries(scores)
+    .map(([emotion, score]) => ({
+      emotion,
+      confidence: Math.min(0.95, parseFloat((0.45 + score * 0.28).toFixed(2))),
+    }))
+    .sort((a, b) => b.confidence - a.confidence)
+    .slice(0, 3);
+}
+
+function buildBodySignals(scored) {
+  const maxScore = scored[0]?.score || 1;
+  return scored
+    .filter((s) => s.score > 0)
+    .map((s) => ({
+      symptom: s.rule.tag,
+      confidence: Math.min(
+        0.95,
+        parseFloat((0.5 + (s.score / maxScore) * 0.45).toFixed(2)),
+      ),
+    }));
+}
+
+function buildEmotionReasoning(emotionSignals, expression, partLabel) {
+  if (emotionSignals.length === 0) return null;
+
+  const emotionNames = emotionSignals.map((e) => e.emotion).join('、');
+  const expr = (expression || '').trim();
+
+  let text = `有时候小朋友在${emotionNames}的时候，`;
+  if (expr) {
+    text += `也会说出「${expr}」这样的话。`;
+  } else {
+    text += `也会觉得${partLabel}不太舒服。`;
+  }
+  text += `身体的感觉和心里的小情绪常常是连在一起的，`;
+  text += `这时候温柔的陪伴，往往比急着找原因更有力量。`;
+
+  return text;
 }
