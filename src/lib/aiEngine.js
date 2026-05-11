@@ -596,3 +596,48 @@ function buildEmotionReasoning(emotionSignals, expression, partLabel) {
 
   return text;
 }
+
+// ───── Hybrid AI: LLM 自然语言增强层 ────────────────────────────
+
+/**
+ * 在规则引擎结果基础上，异步调用 LLM 生成更温暖、更具陪伴感的自然语言。
+ *
+ * 这是 SomaKids Hybrid AI 架构的核心衔接点：
+ *   规则引擎负责 detection + risk + mapping（结构化 signals）
+ *   LLM 负责 reasoning + emotional interpretation + companion response（自然语言增强）
+ *
+ * @param {AnalysisResult} baseResult 规则引擎返回的基础结果
+ * @param {BodyPart} bodyPart 身体部位
+ * @param {string} expression 孩子的原始描述
+ * @returns {Promise<LLMEnhancement|null>} 增强字段；失败时返回 null（静默 fallback）
+ */
+export async function enhanceAnalysisWithLLM(baseResult, bodyPart, expression) {
+  try {
+    const { generateInterpretation } = await import('../services/llmService');
+
+    const llmResult = await generateInterpretation({
+      bodyPart,
+      userExpression: expression || '',
+      bodySignals: baseResult.bodySignals,
+      emotionSignals: baseResult.emotionSignals,
+      riskLevel: baseResult.riskLevel,
+    });
+
+    return {
+      interpretation: llmResult.companionMessage || null,
+      reasoning: llmResult.reasoning || null,
+      emotionReasoning: llmResult.emotionalInsight || null,
+      suggestion: llmResult.suggestion || null,
+    };
+  } catch (err) {
+    // 静默 fallback：LLM 失败时不阻断主流程，用户无感知
+    if (import.meta.env.DEV) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[SomaKids LLM] 增强失败，回退到规则引擎结果：',
+        err instanceof Error ? err.message : String(err)
+      );
+    }
+    return null;
+  }
+}

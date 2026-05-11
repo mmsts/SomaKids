@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { FlowData } from '../types';
 import { BODY_LABEL } from '../lib/ai';
-import { analyzeInput } from '../lib/aiEngine';
-import type { RiskLevel, Suggestion } from '../lib/aiEngine';
+import { analyzeInput, enhanceAnalysisWithLLM } from '../lib/aiEngine';
+import type { RiskLevel, Suggestion, LLMEnhancement } from '../lib/aiEngine';
 import { Companion } from '../components/Companion';
 import { GhostButton } from '../components/GhostButton';
 import { GlassCard } from '../components/GlassCard';
@@ -66,10 +66,61 @@ export function ResultPage({ data, onRestart, onHome }: Props) {
   const { part, expression } = data;
   const [stage, setStage] = useState<Stage>('thinking');
 
-  const result = useMemo(
+  // ───── Hybrid AI: 规则引擎 + LLM 增强 ─────────────────────────
+
+  /** 1. 规则引擎结果：同步计算，立即显示 */
+  const baseResult = useMemo(
     () => analyzeInput(part, expression),
     [part, expression],
   );
+
+  /** 2. LLM 增强结果：异步获取，后台加载 */
+  const [llmEnhancement, setLlmEnhancement] = useState<LLMEnhancement | null>(
+    null
+  );
+  const [isEnhancing, setIsEnhancing] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setIsEnhancing(true);
+    enhanceAnalysisWithLLM(baseResult, part, expression)
+      .then((enh) => {
+        if (!cancelled && enh) setLlmEnhancement(enh);
+      })
+      .catch(() => {
+        // 静默 fallback：LLM 失败不影响现有展示
+      })
+      .finally(() => {
+        if (!cancelled) setIsEnhancing(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [baseResult, part, expression]);
+
+  /** 3. Typewriter 文本锁定为基础版本，防止 LLM 更新时重启动画 */
+  const interpretationForTypewriter = useMemo(
+    () => baseResult.interpretation,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
+
+  /** 4. 合并显示：Typewriter 完成后才应用 LLM 增强（避免动画中断） */
+  const canApplyEnhanced = stage === 'suggestions' || stage === 'done';
+
+  const result = useMemo(() => {
+    if (!llmEnhancement || !canApplyEnhanced) return baseResult;
+    return {
+      ...baseResult,
+      reasoning: {
+        ...baseResult.reasoning,
+        rationale:
+          llmEnhancement.reasoning || baseResult.reasoning.rationale,
+      },
+      emotionReasoning:
+        llmEnhancement.emotionReasoning || baseResult.emotionReasoning,
+    };
+  }, [baseResult, llmEnhancement, canApplyEnhanced]);
 
   useEffect(() => {
     const t = window.setTimeout(() => setStage('understanding'), 1500);
@@ -184,10 +235,18 @@ export function ResultPage({ data, onRestart, onHome }: Props) {
                 ) : (
                   <div className="text-[17px] leading-[1.85] text-ink-primary">
                     <Typewriter
-                      text={result.interpretation}
+                      text={interpretationForTypewriter}
                       speed={38}
                       onDone={handleUnderstandDone}
                     />
+                    {/* LLM 陪伴洞察：Typewriter 完成后淡入 */}
+                    {canApplyEnhanced && llmEnhancement?.interpretation && (
+                      <div className="mt-4 pt-4 border-t border-white/[0.08] animate-fade-up">
+                        <p className="text-[14.5px] text-ink-secondary leading-[1.85] italic">
+                          {llmEnhancement.interpretation}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -198,7 +257,14 @@ export function ResultPage({ data, onRestart, onHome }: Props) {
         {/* How SomaKids understood */}
         {showSuggestions && (
           <section className="mt-9 animate-fade-up">
-            <SectionLabel>SomaKids 是怎么理解的？</SectionLabel>
+            <div className="flex items-center gap-2">
+              <SectionLabel>SomaKids 是怎么理解的？</SectionLabel>
+              {isEnhancing && !llmEnhancement && (
+                <span className="text-[11px] text-ink-tertiary animate-pulse">
+                  ✨ AI 深度理解中…
+                </span>
+              )}
+            </div>
             <GlassCard
               radius="xl"
               size="md"
@@ -320,6 +386,42 @@ export function ResultPage({ data, onRestart, onHome }: Props) {
                 />
               ))}
             </div>
+
+            {/* LLM 温暖建议：额外的情感陪伴建议 */}
+            {canApplyEnhanced && llmEnhancement?.suggestion && (
+              <GlassCard
+                radius="xl"
+                size="sm"
+                glow="soft"
+                className="mt-3 animate-fade-up"
+                style={{ animationDelay: '800ms' }}
+              >
+                <div className="flex gap-4 items-start">
+                  <div className="relative shrink-0">
+                    <div
+                      className="absolute inset-0 rounded-full blur-xl opacity-50"
+                      style={{ background: risk.glow }}
+                    />
+                    <div className="relative w-12 h-12 rounded-full glass-strong flex items-center justify-center text-[22px]">
+                      💡
+                    </div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] tracking-[0.12em] text-ink-tertiary font-mono">
+                        AI
+                      </span>
+                      <span className="text-[12px] text-ink-tertiary">
+                        陪伴建议
+                      </span>
+                    </div>
+                    <p className="mt-1.5 text-[14px] text-ink-secondary leading-relaxed">
+                      {llmEnhancement.suggestion}
+                    </p>
+                  </div>
+                </div>
+              </GlassCard>
+            )}
           </section>
         )}
 

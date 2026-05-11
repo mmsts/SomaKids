@@ -48,3 +48,11 @@ export interface HistoryEntry {
   aiTag: string;
   date: string;
 }
+
+// ───── Dynamic Conversational Guidance ────────────────────────
+
+export interface ConversationTurn {
+  role: 'child' | 'companion';
+  content: string;
+  type?: 'initial' | 'followup' | 'answer';
+}
