@@ -1,7 +1,6 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-  readonly VITE_QIANFAN_API_KEY: string;
   readonly VITE_QIANFAN_MODEL: string;
 }
 

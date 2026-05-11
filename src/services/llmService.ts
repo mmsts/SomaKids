@@ -34,20 +34,8 @@ export interface LLMInterpretationResult {
   suggestion: string;
 }
 
-// 开发环境走 Vite proxy，生产环境直连千帆域名
-const API_BASE = import.meta.env.DEV
-  ? '/qianfan'
-  : 'https://qianfan.baidubce.com';
-
-function getApiKey(): string {
-  const key = import.meta.env.VITE_QIANFAN_API_KEY;
-  if (!key || key === 'your_api_key_here') {
-    throw new Error(
-      'VITE_QIANFAN_API_KEY 未配置。请在 .env 文件中填入百度千帆 ModelBuilder 的 API Key。'
-    );
-  }
-  return key;
-}
+// 调用同域 API 端点，由 Vercel Edge Function / Vite proxy 转发到千帆 API
+const API_URL = '/api/chat';
 
 function getModelName(): string {
   return import.meta.env.VITE_QIANFAN_MODEL || 'ernie-4.5-turbo-128k';
@@ -155,15 +143,12 @@ ${emotionSignalsText}
 export async function generateInterpretation(
   input: LLMInput
 ): Promise<LLMInterpretationResult> {
-  const apiKey = getApiKey();
   const model = getModelName();
-  const url = `${API_BASE}/v2/chat/completions`;
 
-  const response = await fetch(url, {
+  const response = await fetch(API_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
       model,
@@ -334,15 +319,12 @@ ${askedQuestions.length > 0 ? `已经问过的问题（绝对不要重复类似�
 export async function generateFollowUpQuestion(
   input: FollowUpInput
 ): Promise<FollowUpResult> {
-  const apiKey = getApiKey();
   const model = getModelName();
-  const url = `${API_BASE}/v2/chat/completions`;
 
-  const response = await fetch(url, {
+  const response = await fetch(API_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
       model,
@@ -508,15 +490,12 @@ ${historyText}
 export async function analyzeExpression(
   input: ExpressionAnalysisInput
 ): Promise<ExpressionAnalysisResult> {
-  const apiKey = getApiKey();
   const model = getModelName();
-  const url = `${API_BASE}/v2/chat/completions`;
 
-  const response = await fetch(url, {
+  const response = await fetch(API_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
       model,
