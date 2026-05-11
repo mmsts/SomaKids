@@ -5,3 +5,6 @@ dist-ssr
 *.local
 .DS_Store
 .env
+vite.config.js
+vite.config.d.ts
+*.tsbuildinfo
