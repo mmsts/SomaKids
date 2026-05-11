@@ -5,7 +5,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
 
   return {
-    base: '/SomaKids/',
+    base: '/',
     plugins: [react()],
     server: {
       proxy: {

@@ -5,8 +5,12 @@
   "framework": "vite",
   "rewrites": [
     {
-      "source": "/SomaKids/api/chat",
+      "source": "/api/chat",
       "destination": "/api/chat"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
     }
   ],
   "headers": [
