@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SomaKids · 听懂身体的话，让爱不再焦虑</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-cream: #fdfbf7; --bg-lavender: #f4eefb;
+    --text-ink: #1c1a4a; --text-soft: #5a5a82; --text-muted: #8b8bb0;
+    --violet-strong: #6f46ff; --violet-deep: #4a2fc9; --violet-soft: #a48eff;
+    --font-body: "Plus Jakarta Sans", "Noto Sans SC", -apple-system, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: var(--font-body); background: var(--bg-cream);
+    color: var(--text-ink); line-height: 1.7; -webkit-font-smoothing: antialiased;
+  }
+
+  /* 编辑模式 */
+  body.editing [data-editable]:hover { outline: 2px dashed var(--violet-soft); outline-offset: 4px; cursor: text; }
+  body.editing [data-editable]:focus { outline: 2px solid var(--violet-strong); outline-offset: 4px; }
+  .edit-btn {
+    position: fixed; bottom: 24px; right: 24px; z-index: 999;
+    background: var(--violet-strong); color: #fff; border: none; border-radius: 50px;
+    padding: 12px 22px; font-family: var(--font-body); font-size: 13px; font-weight: 600;
+    cursor: pointer; box-shadow: 0 4px 20px rgba(111,70,255,0.3); transition: all .3s; letter-spacing: 0.5px;
+  }
+  .edit-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(111,70,255,0.4); }
+  .edit-btn.active { background: #1c1a4a; }
+  .saved-toast {
+    position: fixed; bottom: 80px; right: 24px; z-index: 999;
+    background: #10b981; color: #fff; padding: 10px 20px; border-radius: 12px;
+    font-size: 13px; font-weight: 500; opacity: 0; transform: translateY(10px);
+    transition: all .3s; pointer-events: none;
+  }
+  .saved-toast.show { opacity: 1; transform: translateY(0); }
+
+  /* 导航 */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: rgba(253,251,247,0.92); backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(28,26,74,0.06); padding: 14px 0;
+  }
+  nav .nav-inner { max-width: 1100px; margin: 0 auto; padding: 0 32px; display: flex; justify-content: space-between; align-items: center; }
+  nav .logo { font-weight: 700; font-size: 17px; color: var(--text-ink); letter-spacing: -0.3px; }
+  nav .logo span { color: var(--violet-strong); }
+  nav .nav-links { display: flex; gap: 28px; font-size: 13px; font-weight: 500; }
+  nav .nav-links a { color: var(--text-soft); text-decoration: none; transition: color .2s; }
+  nav .nav-links a:hover { color: var(--violet-strong); }
+
+  /* Hero */
+  .hero {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    padding: 100px 32px 80px; text-align: center;
+    background:
+      radial-gradient(ellipse 55% 45% at 8% 5%, rgba(216,202,248,0.75) 0%, transparent 55%),
+      radial-gradient(ellipse 48% 40% at 92% 12%, rgba(255,216,194,0.65) 0%, transparent 55%),
+      radial-gradient(ellipse 60% 35% at 50% 95%, rgba(200,238,216,0.6) 0%, transparent 55%),
+      linear-gradient(180deg, var(--bg-cream) 0%, var(--bg-lavender) 100%);
+    border-bottom: 1px solid rgba(28,26,74,0.06);
+  }
+  .hero-inner { max-width: 780px; margin: 0 auto; }
+  .hero .badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.7); padding: 8px 16px; border-radius: 24px; font-size: 12px; color: var(--text-soft); margin-bottom: 24px; backdrop-filter: blur(12px); border: 1px solid rgba(28,26,74,0.06); box-shadow: 0 2px 12px rgba(111,70,255,0.06); }
+  .hero .badge .dot { width: 7px; height: 7px; background: var(--violet-strong); border-radius: 50%; box-shadow: 0 0 8px rgba(111,70,255,0.5); animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.55; transform: scale(1.3); } }
+  .hero h1 { font-size: 56px; font-weight: 700; letter-spacing: -2px; margin-bottom: 12px; line-height: 1.05; }
+  .hero h1 .accent { color: var(--violet-deep); font-style: italic; }
+  .hero .slogan { font-size: 22px; color: var(--text-soft); margin-bottom: 28px; font-weight: 600; }
+  .hero .definition { font-size: 16px; color: var(--text-soft); max-width: 680px; margin: 0 auto; line-height: 1.8; }
+
+  /* 容器 */
+  section { max-width: 1100px; margin: 0 auto; padding: 80px 32px; }
+  .section-tag { display: inline-flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 600; letter-spacing: 1.5px; color: var(--violet-deep); background: rgba(111,70,255,0.08); padding: 6px 14px; border-radius: 20px; margin-bottom: 16px; text-transform: uppercase; }
+  .section-tag::before { content: ""; width: 6px; height: 6px; background: var(--violet-strong); border-radius: 50%; box-shadow: 0 0 8px rgba(111,70,255,0.4); }
+  .section-title { font-size: 30px; font-weight: 700; margin-bottom: 12px; letter-spacing: -0.5px; }
+  .section-subtitle { font-size: 16px; color: var(--text-muted); margin-bottom: 48px; }
+
+  /* 背景板块 */
+  .background-grid { display: grid; grid-template-columns: 1.15fr 1fr; gap: 24px; }
+  .problem-block {
+    background: linear-gradient(135deg, #fff8f5 0%, #fff0e8 100%);
+    border-radius: 20px; padding: 32px; border: 1px solid rgba(255,184,184,0.25);
+  }
+  .problem-block h3 { font-size: 17px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; font-weight: 700; }
+  .problem-block p { color: var(--text-soft); font-size: 14px; margin-bottom: 16px; line-height: 1.7; }
+  .problem-block strong { color: var(--violet-deep); }
+  .conflict-box { background: #fff; border-radius: 14px; padding: 18px; border: 1px dashed rgba(255,184,184,0.45); }
+  .conflict-box .conflict-title { font-size: 12px; color: var(--violet-deep); font-weight: 600; margin-bottom: 10px; letter-spacing: 0.5px; }
+  .conflict-box ul { list-style: none; }
+  .conflict-box li { font-size: 13px; color: var(--text-soft); margin-bottom: 6px; padding-left: 18px; position: relative; }
+  .conflict-box li::before { content: "→"; position: absolute; left: 0; color: var(--violet-strong); }
+
+  .pain-points-side { display: flex; flex-direction: column; gap: 14px; }
+  .pain-item { background: #fff; border-radius: 16px; padding: 22px; border: 1px solid rgba(28,26,74,0.06); border-left: 3px solid var(--violet-strong); box-shadow: 0 2px 12px rgba(28,26,74,0.03); }
+  .pain-item .pain-num { font-size: 22px; font-weight: 700; color: var(--violet-strong); display: block; margin-bottom: 8px; }
+  .pain-item h4 { font-size: 15px; margin-bottom: 6px; font-weight: 600; }
+  .pain-item p { font-size: 13px; color: var(--text-soft); line-height: 1.6; }
+
+  /* 项目展示 */
+  .display-links { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 32px; }
+  .link-card { background: #fff; border-radius: 16px; padding: 20px; border: 1px solid rgba(28,26,74,0.06); display: flex; align-items: center; justify-content: space-between; text-decoration: none; color: inherit; transition: all .25s; box-shadow: 0 2px 12px rgba(28,26,74,0.03); }
+  .link-card:hover { border-color: var(--violet-soft); transform: translateX(4px); box-shadow: 0 8px 24px rgba(111,70,255,0.08); }
+  .link-card .link-info { display: flex; flex-direction: column; gap: 3px; }
+  .link-card .link-label { font-size: 11px; color: var(--text-muted); letter-spacing: 0.5px; }
+  .link-card .link-url { font-size: 14px; font-weight: 600; }
+  .link-card .arrow { color: var(--violet-strong); font-size: 18px; }
+
+  /* 图片上传区域 */
+  .screenshots-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .upload-zone {
+    position: relative; border-radius: 16px; overflow: hidden;
+    aspect-ratio: 16/10; background: linear-gradient(135deg, #f8f6f3 0%, #f0ece6 100%);
+    border: 2px dashed rgba(139,139,176,0.2);
+    display: flex; align-items: center; justify-content: center;
+    transition: all .2s; cursor: pointer;
+  }
+  .upload-zone:hover { border-color: var(--violet-soft); background: linear-gradient(135deg, #faf8f5 0%, #f5f0fa 100%); }
+  .upload-zone.has-image { border: none; cursor: default; }
+  .upload-zone .file-input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .upload-zone.has-image .file-input { display: none; }
+  .upload-zone .placeholder-content {
+    display: flex; flex-direction: column; align-items: center;
+    color: var(--text-muted); font-size: 13px; text-align: center; padding: 16px;
+    pointer-events: none;
+  }
+  .upload-zone .placeholder-content .ph-icon { font-size: 32px; margin-bottom: 10px; opacity: 0.35; }
+  .upload-zone .placeholder-content .ph-tip { font-size: 11px; margin-top: 6px; opacity: 0.6; }
+  .upload-zone .uploaded-img {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: cover; display: none; z-index: 1;
+  }
+  .upload-zone.has-image .uploaded-img { display: block; }
+  .upload-zone.has-image .placeholder-content { display: none; }
+  .upload-zone .img-actions {
+    position: absolute; top: 8px; right: 8px; z-index: 2;
+    display: none; gap: 6px;
+  }
+  .upload-zone.has-image:hover .img-actions { display: flex; }
+  .upload-zone .img-actions button {
+    background: rgba(0,0,0,0.6); color: #fff; border: none;
+    border-radius: 8px; padding: 6px 12px; font-size: 11px;
+    cursor: pointer; font-family: var(--font-body);
+    backdrop-filter: blur(4px); transition: background .2s;
+  }
+  .upload-zone .img-actions button:hover { background: rgba(0,0,0,0.8); }
+  .upload-zone.drag-over { border-color: var(--violet-strong); background: var(--bg-lavender); }
+
+  /* 产品机制 */
+  .feature-arch { background: #fff; border-radius: 20px; padding: 32px; border: 1px solid rgba(28,26,74,0.06); margin-bottom: 28px; box-shadow: 0 4px 20px rgba(28,26,74,0.04); }
+  .feature-arch h3 { font-size: 17px; margin-bottom: 16px; font-weight: 700; }
+  .arch-placeholder {
+    background: linear-gradient(135deg, #faf8f5 0%, #f5f0fa 100%);
+    border: 2px dashed rgba(139,139,176,0.2); border-radius: 16px;
+    padding: 80px 24px; text-align: center; color: var(--text-muted);
+    min-height: 280px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+  .arch-placeholder .ph-icon { font-size: 36px; opacity: 0.35; margin-bottom: 12px; }
+
+  .modules-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; margin-bottom: 28px; }
+  .module-card { background: #fff; border-radius: 20px; padding: 24px; border: 1px solid rgba(28,26,74,0.06); transition: all .3s; box-shadow: 0 4px 20px rgba(28,26,74,0.04); }
+  .module-card:hover { border-color: var(--violet-soft); box-shadow: 0 12px 40px rgba(111,70,255,0.08); }
+  .module-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .module-icon { width: 34px; height: 34px; border-radius: 10px; background: linear-gradient(135deg, var(--bg-lavender) 0%, #ebe4f8 100%); color: var(--violet-deep); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; }
+  .module-title { font-size: 16px; font-weight: 700; }
+  .module-desc { font-size: 13px; color: var(--text-muted); margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px dashed rgba(28,26,74,0.08); }
+  .module-features { list-style: none; }
+  .module-features li { font-size: 13px; color: var(--text-soft); margin-bottom: 7px; padding-left: 16px; position: relative; line-height: 1.6; }
+  .module-features li::before { content: "▸"; position: absolute; left: 0; color: var(--violet-strong); font-size: 12px; }
+  .module-features li strong { color: var(--text-ink); }
+
+  /* 流程图 */
+  .flow-section { background: #fff; border-radius: 20px; padding: 32px; border: 1px solid rgba(28,26,74,0.06); margin-bottom: 28px; box-shadow: 0 4px 20px rgba(28,26,74,0.04); }
+  .flow-section h3 { font-size: 17px; margin-bottom: 16px; font-weight: 700; }
+  .flow-placeholder { background: linear-gradient(135deg, #f0f7ff 0%, #e8f0fe 100%); border: 2px dashed rgba(139,139,176,0.2); border-radius: 16px; padding: 80px 24px; text-align: center; color: var(--text-muted); min-height: 280px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .flow-placeholder .ph-icon { font-size: 32px; opacity: 0.4; margin-bottom: 12px; }
+
+  /* 技术方案 */
+  .tech-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 28px; }
+  .tech-card { background: #fff; border-radius: 20px; padding: 32px; border: 1px solid rgba(28,26,74,0.06); box-shadow: 0 4px 20px rgba(28,26,74,0.04); }
+  .tech-card h3 { font-size: 17px; margin-bottom: 20px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  .tech-card .tech-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+  .tech-card .tech-tag { background: var(--bg-lavender); color: var(--violet-deep); padding: 7px 16px; border-radius: 20px; font-size: 13px; font-weight: 500; border: 1px solid rgba(111,70,255,0.12); }
+  .tech-card .tech-tag.highlight { background: var(--violet-strong); color: #fff; border-color: var(--violet-strong); box-shadow: 0 4px 16px rgba(111,70,255,0.2); }
+  .tech-card .arch-value { font-size: 14px; color: var(--text-soft); line-height: 1.7; font-family: 'SF Mono', 'Monaco', monospace; background: var(--bg-cream); padding: 16px; border-radius: 12px; border: 1px solid rgba(28,26,74,0.06); }
+  .tech-card .arch-value .code-line { color: var(--violet-deep); font-weight: 600; }
+
+  /* 价值 */
+  .value-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .value-card { background: #fff; border-radius: 20px; padding: 28px; border: 1px solid rgba(28,26,74,0.06); position: relative; overflow: hidden; box-shadow: 0 4px 20px rgba(28,26,74,0.04); }
+  .value-card::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, var(--violet-strong), var(--violet-soft)); }
+  .value-card .value-num { font-size: 11px; color: var(--violet-strong); font-weight: 700; margin-bottom: 10px; letter-spacing: 1.5px; }
+  .value-card h4 { font-size: 17px; margin-bottom: 12px; font-weight: 700; }
+  .value-card p { font-size: 14px; color: var(--text-soft); line-height: 1.7; }
+
+  /* 迭代 */
+  .roadmap { display: flex; flex-direction: column; gap: 14px; }
+  .roadmap-item { display: grid; grid-template-columns: 72px 1fr; background: #fff; border-radius: 18px; padding: 22px 24px; border: 1px solid rgba(28,26,74,0.06); align-items: center; box-shadow: 0 2px 12px rgba(28,26,74,0.03); }
+  .version-badge { background: linear-gradient(135deg, var(--violet-strong), #8b6fff); color: #fff; padding: 8px 0; border-radius: 10px; font-weight: 700; font-size: 13px; text-align: center; letter-spacing: 1px; }
+  .roadmap-item:nth-child(2) .version-badge { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+  .roadmap-item:nth-child(3) .version-badge { background: linear-gradient(135deg, #10b981, #34d399); }
+  .roadmap-content { padding-left: 20px; }
+  .roadmap-content h4 { font-size: 15px; margin-bottom: 4px; font-weight: 600; }
+  .roadmap-content p { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+
+  /* Footer */
+  footer { background: #1c1a4a; color: rgba(255,255,255,0.5); padding: 40px 32px; text-align: center; font-size: 13px; margin-top: 40px; }
+  footer .footer-inner { max-width: 1100px; margin: 0 auto; }
+  footer .footer-title { color: #fff; font-size: 15px; margin-bottom: 6px; font-weight: 600; }
+
+  /* 响应式 */
+  @media (max-width: 768px) {
+    .hero { padding: 80px 20px 48px; }
+    .hero h1 { font-size: 36px; }
+    .hero .slogan { font-size: 17px; }
+    .background-grid, .display-links, .modules-grid, .tech-grid, .value-grid { grid-template-columns: 1fr; }
+    .screenshots-grid { grid-template-columns: 1fr; }
+    section { padding: 60px 20px; }
+    .section-title { font-size: 22px; }
+    nav .nav-links { display: none; }
+    .roadmap-item { grid-template-columns: 64px 1fr; padding: 18px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 编辑按钮 -->
+<button class="edit-btn" id="editToggle" onclick="toggleEdit()">✏️ 编辑模式</button>
+<div class="saved-toast" id="savedToast">✓ 已自动保存</div>
+
+<!-- 导航 -->
+<nav>
+  <div class="nav-inner">
+    <div class="logo">Soma<span>Kids</span></div>
+    <div class="nav-links">
+      <a href="#background">背景</a>
+      <a href="#display">展示</a>
+      <a href="#mechanism">机制</a>
+      <a href="#value">价值</a>
+      <a href="#roadmap">迭代</a>
+    </div>
+  </div>
+</nav>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="hero-inner">
+    <div class="badge">
+      <span class="dot"></span>
+      AI 产品案例 · AIGC + 家庭育儿场景
+    </div>
+    <h1 data-editable data-key="hero-title">Soma<span class="accent">Kids</span></h1>
+    <p class="slogan" data-editable data-key="hero-slogan">「听懂身体的话，让爱不再焦虑」</p>
+    <p class="definition" data-editable data-key="hero-desc">是一款基于 AIGC 技术、专为家庭场景设计的身体感官转译工具，能将孩子模糊、富有童真的语言，精准转化为家长可决策、可参考的专业信息</p>
+  </div>
+</div>
+
+<!-- 项目背景 -->
+<section id="background">
+  <span class="section-tag" data-editable data-key="bg-tag">01 · BACKGROUND</span>
+  <h2 class="section-title" data-editable data-key="bg-title">项目背景</h2>
+  <p class="section-subtitle" data-editable data-key="bg-subtitle">从一个被忽视的「身体表达悖论」出发</p>
+
+  <div class="background-grid">
+    <div class="problem-block">
+      <h3 data-editable data-key="bg-problem-title">⚡ 核心问题</h3>
+      <p data-editable data-key="bg-problem-desc">在家庭育儿场景中，儿童与成人之间长期存在一种隐性的"身体表达断层"。由于语言能力尚未成熟，儿童通常不会直接描述"症状"，而更倾向于表达"感受"："我的心里难受"、"肚子里的气球要炸掉啦"……这些表达虽然真实，却缺乏标准化语义。家长、老师甚至医生，在缺少儿童语境的情况下，往往难以准确理解其背后的身体信号与情绪状态。</p>
+      <div class="conflict-box">
+        <div class="conflict-title" data-editable data-key="bg-conflict-title">由此衍生的两类后果</div>
+        <ul>
+          <li data-editable data-key="bg-conflict-1"><strong>过度焦虑：</strong>频繁送医、重复检查</li>
+          <li data-editable data-key="bg-conflict-2"><strong>疏忽观察：</strong>延误身体异常的早期发现</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="pain-points-side">
+      <div class="pain-item">
+        <span class="pain-num">01</span>
+        <h4 data-editable data-key="pain-1-title">表达难</h4>
+        <p data-editable data-key="pain-1-desc">孩子的语言发育尚未成熟，无法用精准的医学词汇描述不适感</p>
+      </div>
+      <div class="pain-item">
+        <span class="pain-num">02</span>
+        <h4 data-editable data-key="pain-2-title">理解难</h4>
+        <p data-editable data-key="pain-2-desc">家长难以理解抽象的描述，「肚子要炸掉了」到底是胀气、紧张、还是真的疼？</p>
+      </div>
+      <div class="pain-item">
+        <span class="pain-num">03</span>
+        <h4 data-editable data-key="pain-3-title">决策难</h4>
+        <p data-editable data-key="pain-3-desc">在「立刻送医」与「再观察一下」之间反复纠结，焦虑被时间放大，信任被消耗</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 项目展示 -->
+<section id="display" style="background: #fff; margin: 0; max-width: 100%; border-top: 1px solid rgba(28,26,74,0.06); border-bottom: 1px solid rgba(28,26,74,0.06);">
+  <div style="max-width: 1100px; margin: 0 auto;">
+    <span class="section-tag" data-editable data-key="demo-tag">02 · DEMO</span>
+    <h2 class="section-title" data-editable data-key="demo-title">项目展示</h2>
+    <p class="section-subtitle" data-editable data-key="demo-subtitle">代码仓库 + 在线体验</p>
+
+    <div class="display-links">
+      <a href="https://github.com/mmsts/SomaKids" target="_blank" class="link-card">
+        <div class="link-info">
+          <span class="link-label">GITHUB 代码地址</span>
+          <span class="link-url">github.com/mmsts/SomaKids</span>
+        </div>
+        <span class="arrow">↗</span>
+      </a>
+      <a href="https://somakids-git-main-savannah-s-projects.vercel.app/" target="_blank" class="link-card">
+        <div class="link-info">
+          <span class="link-label">在线体验链接</span>
+          <span class="link-url">somakids.vercel.app</span>
+        </div>
+        <span class="arrow">↗</span>
+      </a>
+    </div>
+
+    <h3 style="font-size: 17px; margin-bottom: 18px; color: var(--text-ink); font-weight: 700;" data-editable data-key="screenshot-title">页面截图</h3>
+    <div class="screenshots-grid">
+      <div class="upload-zone" data-img-id="ss-1">
+        <input type="file" accept="image/*" class="file-input" aria-label="上传图片">
+        <img class="uploaded-img" alt="首页 · 家庭中心">
+        <div class="img-actions">
+          <button class="replace-btn" onclick="event.stopPropagation(); triggerReplace(this)">替换</button>
+          <button class="delete-btn" onclick="event.stopPropagation(); deleteImage(this)">删除</button>
+        </div>
+        <div class="placeholder-content">
+          <div class="ph-icon">🖼️</div>
+          <div>首页 · 家庭中心</div>
+          <div class="ph-tip">点击 / 粘贴 / 拖放 上传图片</div>
+        </div>
+      </div>
+      <div class="upload-zone" data-img-id="ss-2">
+        <input type="file" accept="image/*" class="file-input" aria-label="上传图片">
+        <img class="uploaded-img" alt="儿童端 · 身体讲述">
+        <div class="img-actions">
+          <button class="replace-btn" onclick="event.stopPropagation(); triggerReplace(this)">替换</button>
+          <button class="delete-btn" onclick="event.stopPropagation(); deleteImage(this)">删除</button>
+        </div>
+        <div class="placeholder-content">
+          <div class="ph-icon">🖼️</div>
+          <div>儿童端 · 身体讲述</div>
+          <div class="ph-tip">点击 / 粘贴 / 拖放 上传图片</div>
+        </div>
+      </div>
+      <div class="upload-zone" data-img-id="ss-3">
+        <input type="file" accept="image/*" class="file-input" aria-label="上传图片">
+        <img class="uploaded-img" alt="AI 翻译 · 转译过程">
+        <div class="img-actions">
+          <button class="replace-btn" onclick="event.stopPropagation(); triggerReplace(this)">替换</button>
+          <button class="delete-btn" onclick="event.stopPropagation(); deleteImage(this)">删除</button>
+        </div>
+        <div class="placeholder-content">
+          <div class="ph-icon">🖼️</div>
+          <div>AI 翻译 · 转译过程</div>
+          <div class="ph-tip">点击 / 粘贴 / 拖放 上传图片</div>
+        </div>
+      </div>
+      <div class="upload-zone" data-img-id="ss-4">
+        <input type="file" accept="image/*" class="file-input" aria-label="上传图片">
+        <img class="uploaded-img" alt="家长端 · 决策反馈">
+        <div class="img-actions">
+          <button class="replace-btn" onclick="event.stopPropagation(); triggerReplace(this)">替换</button>
+          <button class="delete-btn" onclick="event.stopPropagation(); deleteImage(this)">删除</button>
+        </div>
+        <div class="placeholder-content">
+          <div class="ph-icon">🖼️</div>
+          <div>家长端 · 决策反馈</div>
+          <div class="ph-tip">点击 / 粘贴 / 拖放 上传图片</div>
+        </div>
+      </div>
+      <div class="upload-zone" data-img-id="ss-5">
+        <input type="file" accept="image/*" class="file-input" aria-label="上传图片">
+        <img class="uploaded-img" alt="历史记录 / 健康档案">
+        <div class="img-actions">
+          <button class="replace-btn" onclick="event.stopPropagation(); triggerReplace(this)">替换</button>
+          <button class="delete-btn" onclick="event.stopPropagation(); deleteImage(this)">删除</button>
+        </div>
+        <div class="placeholder-content">
+          <div class="ph-icon">🖼️</div>
+          <div>历史记录 / 健康档案</div>
+          <div class="ph-tip">点击 / 粘贴 / 拖放 上传图片</div>
+        </div>
+      </div>
+      <div class="upload-zone" data-img-id="ss-6">
+        <input type="file" accept="image/*" class="file-input" aria-label="上传图片">
+        <img class="uploaded-img" alt="关键预警 · 红色高亮">
+        <div class="img-actions">
+          <button class="replace-btn" onclick="event.stopPropagation(); triggerReplace(this)">替换</button>
+          <button class="delete-btn" onclick="event.stopPropagation(); deleteImage(this)">删除</button>
+        </div>
+        <div class="placeholder-content">
+          <div class="ph-icon">🖼️</div>
+          <div>关键预警 · 红色高亮</div>
+          <div class="ph-tip">点击 / 粘贴 / 拖放 上传图片</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 产品机制 -->
+<section id="mechanism">
+  <span class="section-tag" data-editable data-key="mech-tag">03 · MECHANISM</span>
+  <h2 class="section-title" data-editable data-key="mech-title">产品机制</h2>
+  <p class="section-subtitle" data-editable data-key="mech-subtitle">从儿童语言到家长决策的完整闭环</p>
+
+  <div class="feature-arch">
+    <h3 data-editable data-key="arch-title">🧭 功能架构总览</h3>
+    <img src="architecture.png" alt="SomaKids 产品功能架构" style="width:100%;border-radius:12px;display:block;">
+  </div>
+
+  <div class="modules-grid">
+    <div class="module-card">
+      <div class="module-header">
+        <div class="module-icon">01</div>
+        <div class="module-title" data-editable data-key="mod-1-title">首页 · 家庭中心</div>
+      </div>
+      <p class="module-desc" data-editable data-key="mod-1-desc">用户一进入的入口，聚合家庭健康信息概况</p>
+      <ul class="module-features">
+        <li data-editable data-key="mod-1-f1"><strong>儿童健康档案：</strong>支持孩子档案创建，记录基础信息（年龄、性别、过敏史、既往病史）</li>
+        <li data-editable data-key="mod-1-f2"><strong>季节性疾病预警：</strong>基于时节提示流感、过敏等儿童高发病</li>
+        <li data-editable data-key="mod-1-f3"><strong>最近记录速览：</strong>展示近期身体表达记录的时间线与历史</li>
+        <li data-editable data-key="mod-1-f4"><strong>快捷入口：</strong>一键发起对话</li>
+      </ul>
+    </div>
+
+    <div class="module-card">
+      <div class="module-header">
+        <div class="module-icon">02</div>
+        <div class="module-title" data-editable data-key="mod-2-title">儿童端 · 身体讲述</div>
+      </div>
+      <p class="module-desc" data-editable data-key="mod-2-desc">专为儿童设计的绘本式对话界面，降低表达门槛</p>
+      <ul class="module-features">
+        <li data-editable data-key="mod-2-f1"><strong>身体地图指引：</strong>可视化身体部位，引导孩子指出不舒服的地方</li>
+        <li data-editable data-key="mod-2-f2"><strong>多模态输入：</strong>支持语音输入、文字输入，让尚未识字的孩子也能通过声音描绘感受</li>
+        <li data-editable data-key="mod-2-f3"><strong>儿童友好交互：</strong>低龄向 UI，卡片 / 图标主导</li>
+      </ul>
+    </div>
+
+    <div class="module-card">
+      <div class="module-header">
+        <div class="module-icon">03</div>
+        <div class="module-title" data-editable data-key="mod-3-title">AI 层 · 语义转译系统</div>
+      </div>
+      <p class="module-desc" data-editable data-key="mod-3-desc">核心模块，将童言转化为家长可读懂的信息</p>
+      <ul class="module-features">
+        <li data-editable data-key="mod-3-f1"><strong>童言语义理解：</strong>通过身体部位、儿童原始表达、历史对话上下文等，联合推理儿童真实感受</li>
+        <li data-editable data-key="mod-3-f2"><strong>动态 AI 引导对话：</strong>根据孩子回答，决定下一步引导问题</li>
+        <li data-editable data-key="mod-3-f3"><strong>Hybrid AI 架构：</strong>采用"规则引擎 → 结构化 Signals → 大模型情绪增强"策略。接入的大模型为百度千帆 ERNIE-4.5-Turbo-128K</li>
+        <li data-editable data-key="mod-3-f4"><strong>安全边界设计：</strong>明确不做医疗诊断，不输出确诊治疗</li>
+      </ul>
+    </div>
+
+    <div class="module-card">
+      <div class="module-header">
+        <div class="module-icon">04</div>
+        <div class="module-title" data-editable data-key="mod-4-title">家长端 · 决策反馈</div>
+      </div>
+      <p class="module-desc" data-editable data-key="mod-4-desc">将童言转化为可能的身体信号 + 阶梯式应对方案</p>
+      <ul class="module-features">
+        <li data-editable data-key="mod-4-f1"><strong>症状可能性分析：</strong>从身体、心理情绪两个角度解析</li>
+        <li data-editable data-key="mod-4-f2"><strong>分级行动建议：</strong>四级响应方案，明确「现在该做什么」</li>
+        <li data-editable data-key="mod-4-f3"><strong>关键信号导出：</strong>红色高亮重点关注的危险特征</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="flow-section">
+    <h3 data-editable data-key="flow-title">🔄 核心交互流程</h3>
+    <img src="flow.png" alt="核心交互流程" style="width:100%;border-radius:12px;display:block;">
+  </div>
+
+  <div class="tech-grid">
+    <div class="tech-card">
+      <h3 data-editable data-key="tech-stack-title">⚙️ 技术栈</h3>
+      <div class="tech-tags">
+        <span class="tech-tag">React</span>
+        <span class="tech-tag">TypeScript</span>
+        <span class="tech-tag">Vite</span>
+        <span class="tech-tag">Tailwind CSS</span>
+        <span class="tech-tag highlight">百度千帆 LLM</span>
+        <span class="tech-tag">Vercel Edge Functions</span>
+      </div>
+    </div>
+    <div class="tech-card">
+      <h3 data-editable data-key="tech-arch-title">🏗️ 架构</h3>
+      <div class="arch-value" data-editable data-key="tech-arch-desc"><span class="code-line">Hybrid AI</span> = <span class="code-line">规则引擎（结构化 Signals）</span> + <span class="code-line">LLM 双通道理解</span> + <span class="code-line">Vercel Edge Function 代理</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- 项目价值 -->
+<section id="value" style="background: #fff; margin: 0; max-width: 100%; border-top: 1px solid rgba(28,26,74,0.06); border-bottom: 1px solid rgba(28,26,74,0.06);">
+  <div style="max-width: 1100px; margin: 0 auto;">
+    <span class="section-tag" data-editable data-key="value-tag">04 · VALUE</span>
+    <h2 class="section-title" data-editable data-key="value-title">项目价值</h2>
+    <p class="section-subtitle" data-editable data-key="value-subtitle">解决一个被低估的高频家庭场景</p>
+
+    <div class="value-grid">
+      <div class="value-card">
+        <div class="value-num">VALUE · 01</div>
+        <h4 data-editable data-key="val-1-title">医疗决策辅助</h4>
+        <p data-editable data-key="val-1-desc">提供「由浅入深」的阶梯式行动建议，帮助家长冷静判断是否需要立即就医，而不是非黑即白。</p>
+      </div>
+      <div class="value-card">
+        <div class="value-num">VALUE · 02</div>
+        <h4 data-editable data-key="val-2-title">心理抚慰</h4>
+        <p data-editable data-key="val-2-desc">营造"绘本式"对话风格，减轻孩子对身体检查的抵触与恐惧。</p>
+      </div>
+      <div class="value-card">
+        <div class="value-num">VALUE · 03</div>
+        <h4 data-editable data-key="val-3-title">家庭资产积累</h4>
+        <p data-editable data-key="val-3-desc">零散的身体反馈被转化为可追踪的数字档案，为就医提供准确的病史凭证，也是家庭的成长记忆。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 未来迭代 -->
+<section id="roadmap">
+  <span class="section-tag" data-editable data-key="roadmap-tag">05 · ROADMAP</span>
+  <h2 class="section-title" data-editable data-key="roadmap-title">未来迭代方向</h2>
+  <p class="section-subtitle" data-editable data-key="roadmap-subtitle">从单点工具走向家庭健康生态</p>
+
+  <div class="roadmap">
+    <div class="roadmap-item">
+      <div class="version-badge">V1</div>
+      <div class="roadmap-content">
+        <h4 data-editable data-key="v1-title">增强转译能力 + 视觉效果</h4>
+        <p data-editable data-key="v1-desc">首页实现长期身体状况可视化 + 上下文推理增强 + 强化沉浸式绘本交互动效</p>
+      </div>
+    </div>
+    <div class="roadmap-item">
+      <div class="version-badge">V2</div>
+      <div class="roadmap-content">
+        <h4 data-editable data-key="v2-title">多端协同 + 多模态 AI</h4>
+        <p data-editable data-key="v2-desc">移动端 / Web / 平板多端同步，引入语音、图像多模态识别能力</p>
+      </div>
+    </div>
+    <div class="roadmap-item">
+      <div class="version-badge">V3</div>
+      <div class="roadmap-content">
+        <h4 data-editable data-key="v3-title">硬件协同 + 文化覆盖</h4>
+        <p data-editable data-key="v3-desc">对接可穿戴 / IoT 健康设备，拓展多语言版本，服务更广泛家庭文化</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-title">SomaKids · 听懂身体的话，让爱不再焦虑</div>
+    <div>AI 产品案例展示 · 2026</div>
+  </div>
+</footer>
+
+<script>
+  // ==================== 文本编辑 + localStorage 持久化 ====================
+  const STORAGE_PREFIX = 'somakids_';
+
+  function saveAllEdits() {
+    document.querySelectorAll('[data-key]').forEach(el => {
+      localStorage.setItem(STORAGE_PREFIX + el.dataset.key, el.innerHTML);
+    });
+  }
+
+  function loadAllEdits() {
+    document.querySelectorAll('[data-key]').forEach(el => {
+      const saved = localStorage.getItem(STORAGE_PREFIX + el.dataset.key);
+      if (saved !== null) el.innerHTML = saved;
+    });
+  }
+
+  function showToast() {
+    const toast = document.getElementById('savedToast');
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 1500);
+  }
+
+  let autoSaveTimer = null;
+  function autoSave() {
+    clearTimeout(autoSaveTimer);
+    autoSaveTimer = setTimeout(() => {
+      saveAllEdits();
+      showToast();
+    }, 800);
+  }
+
+  function toggleEdit() {
+    const btn = document.getElementById('editToggle');
+    const body = document.body;
+    const editables = document.querySelectorAll('[data-editable]');
+    const isEditing = body.classList.toggle('editing');
+
+    if (isEditing) {
+      btn.textContent = '✓ 完成编辑';
+      btn.classList.add('active');
+      editables.forEach(el => {
+        el.contentEditable = 'true';
+        el.addEventListener('input', autoSave);
+      });
+    } else {
+      btn.textContent = '✏️ 编辑模式';
+      btn.classList.remove('active');
+      saveAllEdits();
+      editables.forEach(el => {
+        el.contentEditable = 'false';
+        el.removeEventListener('input', autoSave);
+        el.blur();
+      });
+      showToast();
+    }
+  }
+
+  // 页面加载时恢复文本
+  loadAllEdits();
+
+  // ==================== 图片上传 / 粘贴 / 拖放 ====================
+  function setImage(zone, dataUrl) {
+    const img = zone.querySelector('.uploaded-img');
+    img.src = dataUrl;
+    img.style.display = 'block';
+    zone.classList.add('has-image');
+    localStorage.setItem(STORAGE_PREFIX + 'img_' + zone.dataset.imgId, dataUrl);
+  }
+
+  function clearImage(zone) {
+    const img = zone.querySelector('.uploaded-img');
+    img.src = '';
+    img.style.display = 'none';
+    zone.classList.remove('has-image');
+    localStorage.removeItem(STORAGE_PREFIX + 'img_' + zone.dataset.imgId);
+  }
+
+  function loadSavedImages() {
+    document.querySelectorAll('.upload-zone').forEach(zone => {
+      const saved = localStorage.getItem(STORAGE_PREFIX + 'img_' + zone.dataset.imgId);
+      if (saved) setImage(zone, saved);
+    });
+  }
+
+  function handleFile(file, zone) {
+    if (!file || !file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = e => setImage(zone, e.target.result);
+    reader.readAsDataURL(file);
+  }
+
+  function triggerReplace(btn) {
+    const zone = btn.closest('.upload-zone');
+    const input = zone.querySelector('.file-input');
+    input.click();
+  }
+
+  function deleteImage(btn) {
+    if (!confirm('确定删除这张图片？')) return;
+    const zone = btn.closest('.upload-zone');
+    clearImage(zone);
+  }
+
+  document.querySelectorAll('.upload-zone').forEach(zone => {
+    const input = zone.querySelector('.file-input');
+
+    // 点击上传
+    input.addEventListener('change', e => {
+      if (e.target.files[0]) handleFile(e.target.files[0], zone);
+    });
+
+    // 拖放上传
+    zone.addEventListener('dragover', e => {
+      e.preventDefault();
+      zone.classList.add('drag-over');
+    });
+    zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+    zone.addEventListener('drop', e => {
+      e.preventDefault();
+      zone.classList.remove('drag-over');
+      const file = e.dataTransfer.files[0];
+      if (file) handleFile(file, zone);
+    });
+  });
+
+  // 全局粘贴上传
+  document.addEventListener('paste', e => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    // 找到当前鼠标悬停或焦点所在的 upload-zone
+    let targetZone = null;
+    const hoverZone = document.querySelector('.upload-zone:hover');
+    const focused = document.activeElement;
+    if (hoverZone) {
+      targetZone = hoverZone;
+    } else if (focused && focused.closest('.upload-zone')) {
+      targetZone = focused.closest('.upload-zone');
+    }
+
+    // 如果没有特定目标，找到第一个没有图片的 zone
+    if (!targetZone) {
+      targetZone = document.querySelector('.upload-zone:not(.has-image)');
+    }
+    if (!targetZone) return;
+
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        const file = item.getAsFile();
+        if (file) handleFile(file, targetZone);
+        break;
+      }
+    }
+  });
+
+  // 页面加载时恢复图片
+  loadSavedImages();
+</script>
+
+</body>
+</html>
